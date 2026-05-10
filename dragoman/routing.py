@@ -69,7 +69,7 @@ def _normalize(host: Optional[str]) -> Optional[str]:
     return config.normalize_host(host)
 
 
-def _reachable(url: str, timeout: float = 0.5) -> bool:
+def _reachable(url: str, timeout: float = 2.0) -> bool:
     """Fast TCP probe — no HTTP round-trip, sub-second."""
     candidate = url if "://" in url else f"http://{url}"
     parsed = urlparse(candidate)

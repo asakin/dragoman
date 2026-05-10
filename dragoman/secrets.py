@@ -41,11 +41,11 @@ def _resolve_op(reference: str) -> Optional[str]:
             ["op", "read", reference],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=30,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        raise RuntimeError(f"op read {reference!r} timed out after 10s")
+        raise RuntimeError(f"op read {reference!r} timed out after 30s")
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
         if "not currently signed in" in stderr.lower() or "session expired" in stderr.lower():
@@ -75,7 +75,7 @@ def _resolve_keychain(reference: str) -> Optional[str]:
             ["security", "find-generic-password", "-s", service, "-a", account, "-w"],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=30,
             check=False,
         )
     except subprocess.TimeoutExpired:

@@ -44,12 +44,14 @@ def cmd_ask(args: argparse.Namespace) -> int:
             text, usage = ollama.ask(resolved.model, messages, host=resolved.host_override)
         elif resolved.provider == "perplexity":
             text, usage = openai_compat.ask_perplexity(resolved.model, messages)
+        elif resolved.provider == "gemini":
+            text, usage = openai_compat.ask_gemini(resolved.model, messages)
         elif resolved.provider == "openai-compat":
             text, usage = openai_compat.ask_openai_compat(resolved.model, messages)
         else:
             print(
                 f"error: unknown provider {resolved.provider!r}; "
-                "supported: ollama, perplexity, openai-compat, auto",
+                "supported: ollama, perplexity, gemini, openai-compat, auto",
                 file=sys.stderr,
             )
             return 2
@@ -388,6 +390,20 @@ def cmd_init(args: argparse.Namespace) -> int:
             cfg["perplexity"]["api_key"] = api_key
     print()
 
+    # Gemini
+    print("Gemini (Google):")
+    existing = cfg.get("gemini", {})
+    api_key = _prompt_secret("api key", existing.get("api_key", ""))
+    if api_key == "__SKIP__":
+        cfg.pop("gemini", None)
+    else:
+        default_model = existing.get("default_model") or "gemini-2.5-flash"
+        model = input(f"  default model [{default_model}]: ").strip() or default_model
+        cfg["gemini"] = {"default_model": model}
+        if api_key:
+            cfg["gemini"]["api_key"] = api_key
+    print()
+
     # OpenAI-compat
     print("OpenAI-compatible endpoint (OpenAI proper, LiteLLM, vLLM, Gemini-via-proxy, …):")
     existing = cfg.get("openai_compat", {})
@@ -448,7 +464,7 @@ def main() -> int:
         help="One HTTPS call to a foreign model. Print response.",
         description=(
             "Send a single message to a foreign model and print its reply. "
-            "No agent loop, no tool execution. Providers: ollama, perplexity, "
+            "No agent loop, no tool execution. Providers: ollama, perplexity, gemini, "
             "openai-compat, auto (auto: probes basement Ollama, falls back to laptop)."
         ),
     )
