@@ -21,7 +21,7 @@ The persona injected by `dragoman init` teaches Claude Code when to spawn a real
 ## Install
 
 ```bash
-pip install git+https://github.com/asakin/dragoman.git
+pip install dragoman-ai
 dragoman init
 ```
 
@@ -62,7 +62,7 @@ Then `--model auto:qwen2.5:14b` does a fast TCP probe; basement first, laptop fa
 | --- | --- | --- | --- |
 | Provider config | `~/.config/dragoman/config.toml` | `dragoman init` | `dragoman uninstall --purge-config` |
 | Persona block | `~/.claude/CLAUDE.md` (or project) | `dragoman init` | `dragoman uninstall` |
-| Python package | active env | `pip install dragoman` | `pip uninstall dragoman` |
+| Python package | active env | `pip install dragoman-ai` | `pip uninstall dragoman-ai` |
 
 The persona block is bracketed by `<!-- dragoman persona ... -->` markers; removal is exact and idempotent.
 

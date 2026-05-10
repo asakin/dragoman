@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dragoman"
+name = "dragoman-ai"
 version = "0.5.0"
 description = "A small CLI that lets Claude Code reach non-Anthropic models — Ollama, Perplexity, OpenAI, Gemini — through one verb the existing subagent runtime can call."
 readme = "README.md"
