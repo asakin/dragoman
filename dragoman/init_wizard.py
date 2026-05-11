@@ -77,7 +77,8 @@ _PROVIDERS = [
     {"name": "OpenAI",                       "type": "openai_compat", "host": "https://api.openai.com/v1", "needs_host": False, "needs_key": True},
     {"name": "OpenAI-compatible (Groq, Together, LM Studio, ...)", "type": "openai_compat", "host": None,  "needs_host": True,  "needs_key": True},
     {"name": "Google Gemini",                "type": "gemini",        "host": None,                         "needs_host": False, "needs_key": True},
-    {"name": "Perplexity",                   "type": "openai_compat", "host": "https://api.perplexity.ai",  "needs_host": False, "needs_key": True},
+    {"name": "Perplexity",                   "type": "openai_compat", "host": "https://api.perplexity.ai",  "needs_host": False, "needs_key": True,
+     "fallback_models": ["sonar", "sonar-pro", "sonar-reasoning-pro", "sonar-deep-research"]},
     {"name": "Ollama local [localhost:11434]","type": "openai_compat", "host": "http://localhost:11434/v1",  "needs_host": False, "needs_key": False},
 ]
 
@@ -135,6 +136,10 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict] | None:
         raw_models = discovery.discover_anthropic(api_key)
     else:
         raw_models = discovery.discover_openai_compat(host, api_key)
+
+    if not raw_models and prov.get("fallback_models"):
+        print(f"  No /models endpoint for {conn_name} — using known fallback list.")
+        raw_models = list(prov["fallback_models"])
 
     approved = _select_models(conn_name, raw_models)
     if approved:
