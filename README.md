@@ -2,7 +2,7 @@
 
 A small CLI that lets [Claude Code](https://docs.claude.com/en/docs/claude-code) reach non-Anthropic models — Ollama (local), Perplexity (search-augmented), OpenAI, Gemini, anything OpenAI-compatible — through one verb the existing subagent runtime can call.
 
-I have a GPU in my basement running Ollama and a Tailscale link to it from any coffee shop. I have laptop Ollama for when the network drops. I pay for OpenAI, Gemini, and Perplexity because each is the right answer for a different shape of question. Claude Code is the conductor. Dragoman is the verb that lets the conductor talk to the rest of the orchestra.
+I have a GPU running Ollama. I pay for OpenAI, Gemini, and Perplexity because each is the right answer for a different shape of question. Claude Code is the conductor. Dragoman is the verb that lets the conductor talk to the rest of the orchestra.
 
 **v0.5.0 alpha. Apache 2.0.**
 
@@ -20,8 +20,20 @@ The persona injected by `dragoman init` teaches Claude Code when to spawn a real
 
 ## Install
 
+You can install Dragoman securely using any modern Python tool manager:
+
 ```bash
-pip install dragoman-ai
+# Using pipx (Standard)
+pipx install dragoman-ai
+
+# Using uv (Fastest)
+uv tool install dragoman-ai
+```
+
+*(Homebrew support is currently being built!)*
+
+Then, initialize your config and provider keys:
+```bash
 dragoman init
 ```
 
@@ -32,29 +44,36 @@ Open a fresh Claude Code session. Try: *"What's the best model for [your task]?"
 API keys can be literal strings, environment variables, or references resolved at call time:
 
 ```toml
-[perplexity]
+[providers.perplexity_1]
+type = "openai_compat"
+host = "https://api.perplexity.ai"
 api_key = "op://Personal/Perplexity/credential"   # 1Password CLI
-default_model = "sonar-pro"
 
-[openai_compat]
-host = "https://api.openai.com"
-api_key = "keychain://openai/apikey"              # macOS Keychain
+[providers.groq_1]
+type = "openai_compat"
+host = "https://api.groq.com/v1"
+api_key = "keychain://groq/apikey"              # macOS Keychain
 ```
 
 Dragoman fetches by reference, uses the key for one HTTPS call, discards it. The key never enters Claude's context.
 
-## `auto:` routing
+## Infinite Dynamic Providers
 
-If you have a beefy Ollama somewhere and a fallback Ollama somewhere else, `dragoman` will pick:
+Dragoman replaces hardcoded singleton endpoints with a dynamic provider registry. You can connect as many distinct accounts, gateways, or local instances as you want simultaneously. 
+
+For example, if you have a local laptop Ollama and a heavy basement workstation on Tailscale:
 
 ```toml
-[ollama]
-host = "http://basement.tailnet.ts.net:11434"
-fallback_host = "http://localhost:11434"
-default_model = "qwen2.5:14b"
+[providers.laptop_1]
+type = "openai_compat"
+host = "http://localhost:11434/v1"
+
+[providers.basement_1]
+type = "openai_compat"
+host = "http://basement.tailnet.ts.net:11434/v1"
 ```
 
-Then `--model auto:qwen2.5:14b` does a fast TCP probe; basement first, laptop fallback. The persona never has to know your network state.
+Then you simply tell Claude exactly which pipe to use: `--model basement_1:qwen2.5:72b`. No magic network probing; just explicit, unopinionated routing.
 
 ## What it writes to your system
 

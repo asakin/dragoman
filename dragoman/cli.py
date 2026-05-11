@@ -26,7 +26,7 @@ from dragoman import __version__
 def cmd_ask(args: argparse.Namespace) -> int:
     """One HTTPS call to a foreign model. Print response to stdout."""
     from dragoman import routing
-    from dragoman.routers import ollama, openai_compat
+    from dragoman.routers import providers
 
     try:
         resolved = routing.resolve(args.model)
@@ -35,25 +35,36 @@ def cmd_ask(args: argparse.Namespace) -> int:
         return 2
 
     messages: list[dict] = []
-    if args.system:
-        messages.append({"role": "system", "content": args.system})
-    messages.append({"role": "user", "content": args.prompt})
+    if getattr(args, "messages", None):
+        import json
+        with open(args.messages, "r", encoding="utf-8") as f:
+            messages = json.load(f)
+    else:
+        if not args.prompt:
+            print("error: --prompt is required unless --messages is provided", file=sys.stderr)
+            return 2
+        if args.system:
+            messages.append({"role": "system", "content": args.system})
+        messages.append({"role": "user", "content": args.prompt})
 
     try:
-        if resolved.provider == "ollama":
-            text, usage = ollama.ask(resolved.model, messages, host=resolved.host_override)
-        elif resolved.provider == "perplexity":
-            text, usage = openai_compat.ask_perplexity(resolved.model, messages)
-        elif resolved.provider == "gemini":
-            text, usage = openai_compat.ask_gemini(resolved.model, messages)
-        elif resolved.provider == "openai-compat":
-            text, usage = openai_compat.ask_openai_compat(resolved.model, messages)
-        else:
-            print(
-                f"error: unknown provider {resolved.provider!r}; "
-                "supported: ollama, perplexity, gemini, openai-compat, auto",
-                file=sys.stderr,
+        if resolved.type == "openai_compat":
+            text, usage = providers.ask_openai_compat(
+                model=resolved.model,
+                messages=messages,
+                host=resolved.host,
+                api_key_ref=resolved.api_key_ref,
+                stream=args.stream
             )
+        elif resolved.type == "gemini":
+            text, usage = providers.ask_gemini(
+                model=resolved.model,
+                messages=messages,
+                api_key_ref=resolved.api_key_ref,
+                stream=args.stream
+            )
+        else:
+            print(f"error: unknown connection type {resolved.type!r}", file=sys.stderr)
             return 2
     except Exception as e:
         print(f"error: {resolved.provider} request failed: {e}", file=sys.stderr)
@@ -106,23 +117,23 @@ def cmd_models(args: argparse.Namespace) -> int:
     from dragoman import config as cfg_mod
 
     cfg = cfg_mod.load_config()
-    if not cfg:
+    providers = cfg.get("providers", {})
+    if not providers:
         print("(no providers configured — run `dragoman init`)", file=sys.stderr)
         return 0
 
-    lines: list[str] = []
-    for section, settings in cfg.items():
-        provider = "openai-compat" if section == "openai_compat" else section
-        default_model = settings.get("default_model")
-        if default_model:
-            lines.append(f"{provider}:{default_model}")
+    for conn_name, settings in providers.items():
+        host = settings.get("host")
+        endpoint = f" ({host})" if host else ""
+        print(f"{conn_name}{endpoint}:")
+        
+        approved = settings.get("approved_models", [])
+        if not approved:
+            print("  (no models approved)")
         else:
-            # OpenAI-compat doesn't have a single sane default — note the host.
-            host = settings.get("host", "(host unset)")
-            lines.append(f"{provider}:<model>  # endpoint: {host}")
+            for m in approved:
+                print(f"  - {conn_name}:{m}")
 
-    for line in lines:
-        print(line)
     return 0
 
 
@@ -136,18 +147,22 @@ def _persona_template_path() -> Path:
     return Path(__file__).parent / "templates" / "persona.claude.md"
 
 
-def _persona_block() -> str:
+def _persona_block(approved_table: str = "") -> str:
     persona = _persona_template_path().read_text()
     version_line = f"<!-- dragoman version: {__version__} -->"
+    
+    if approved_table:
+        persona += f"\n\n## Approved Models\n\n{approved_table}\n"
+        
     return f"{PERSONA_START_MARKER}\n{version_line}\n\n{persona.rstrip()}\n\n{PERSONA_END_MARKER}\n"
 
 
-def _inject_persona(target_path: Path) -> str:
+def _inject_persona(target_path: Path, approved_table: str = "") -> str:
     """Inject (or update) the dragoman persona in target_path. Idempotent.
 
     Returns one of: "created", "appended", "updated", "unchanged".
     """
-    block = _persona_block()
+    block = _persona_block(approved_table)
     target_path = Path(target_path)
 
     if not target_path.exists():
@@ -340,112 +355,254 @@ def _prompt_secret(label: str, existing: str = "") -> Optional[str]:
     return raw
 
 
+def _auto_name_from_host(host: str) -> str:
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(host if "://" in host else f"http://{host}")
+        domain = parsed.hostname or ""
+        domain = domain.lower()
+        for prefix in ("api.", "www."):
+            if domain.startswith(prefix):
+                domain = domain[len(prefix):]
+        base = domain.split('.')[0] if '.' in domain else domain
+        return base or "custom"
+    except Exception:
+        return "custom"
+
+def _get_unique_name(base: str, existing_names: set) -> str:
+    name = base
+    count = 1
+    while name in existing_names:
+        count += 1
+        name = f"{base}_{count}"
+    return name
+
+def _prompt_connection_name(default_name: str) -> str:
+    name = input(f"  Name this connection [{default_name}]: ").strip()
+    return name or default_name
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Interactive setup: provider config + CLAUDE.md persona injection."""
     from dragoman import config as cfg_mod
 
-    print(f"dragoman init — interactive setup")
-    print(f"(config will be written to {cfg_mod.CONFIG_FILE})")
-    print(
-        "API keys can be literal strings or references:\n"
-        "  - op://Personal/Perplexity/credential   (1Password CLI)\n"
-        "  - keychain://perplexity/apikey          (macOS Keychain)\n"
-        "  - env:PERPLEXITY_API_KEY                (environment variable)\n"
-    )
-
+    print("🐉 dragoman init\n")
+    print("Dragoman helps Claude Code and background agents use models from other providers.")
+    print("It also helps you and Claude choose the right model for each job.\n")
+    print("This setup will create a local config for the providers you want to connect.")
+    print("You can add multiple providers now, or press Enter to finish at any time.\n")
+    print(f"Config will be saved to: {cfg_mod.CONFIG_FILE}\n")
+    print("How Dragoman can access API keys:")
+    print("  - Environment variable name, for example OPENAI_API_KEY")
+    print("  - macOS Keychain reference, for example keychain://openai/apikey")
+    print("  - 1Password reference, for example op://Private/OpenAI API Key/credential")
+    print("  - Plain key saved in config, not recommended\n")
+    
     cfg = cfg_mod.load_config()
+    providers = cfg.setdefault("providers", {})
+    all_approved = []
+    
+    first_time = True
 
-    # Ollama: optional basement + laptop fallback
-    print("Ollama (local LLM server):")
-    existing = cfg.get("ollama", {})
-    primary = _prompt_host(
-        "primary host",
-        existing.get("host") or "http://localhost:11434",
-    )
-    if primary is None:
-        cfg.pop("ollama", None)
-    else:
-        fallback = _prompt_host(
-            "fallback host (e.g. http://localhost:11434 if primary is your basement)",
-            existing.get("fallback_host", ""),
-        )
-        default_model = existing.get("default_model") or "qwen2.5:14b"
-        model = input(f"  default model [{default_model}]: ").strip() or default_model
-        cfg["ollama"] = {"host": primary, "default_model": model}
-        if fallback:
-            cfg["ollama"]["fallback_host"] = fallback
-    print()
+    while True:
+        if first_time:
+            print("What would you like to connect first?\n")
+            first_time = False
+        else:
+            print("What would you like to connect next?\n")
+            
+        print("  [1] OpenAI")
+        print("  [2] Other OpenAI-compatible provider or gateway")
+        print("      Examples: Groq, Together, LM Studio, LiteLLM")
+        print("  [3] Google Gemini")
+        print("  [4] Perplexity")
+        print("  [5] Ollama local server [http://localhost:11434]\n")
+        
+        choice = input("Options: [1-5] Connect provider, [Enter] Exit\n> ").strip()
+        if not choice:
+            break
+            
+        if choice == "1":
+            print("\n--- OpenAI ---")
+            api_key = _prompt_secret("API key", "")
+            if api_key == "__SKIP__":
+                continue
+                
+            default_name = _get_unique_name("openai", set(providers.keys()))
+            conn_name = _prompt_connection_name(default_name)
+            
+            block = {"type": "openai_compat", "host": "https://api.openai.com/v1"}
+            if api_key:
+                block["api_key"] = api_key
+                
+            print(f"  Discovering live models for {conn_name}...")
+            from dragoman import discovery
+            discovered = discovery.discover_openai_compat(block["host"], api_key)
+            approved = _prompt_checkbox_menu(conn_name, discovered)
+            if approved:
+                for m in approved:
+                    m["connection"] = conn_name
+                all_approved.extend(approved)
+                block["approved_models"] = [m["model_id"] for m in approved]
+            
+            providers[conn_name] = block
+            print()
+            
+        elif choice == "2":
+            print("\n--- Other OpenAI-compatible provider ---")
+            host = _prompt_host("Endpoint URL", "")
+            if not host:
+                continue
+                
+            api_key = _prompt_secret("API key (blank if none)", "")
+            if api_key == "__SKIP__":
+                api_key = None
+            
+            base_name = _auto_name_from_host(host)
+            default_name = _get_unique_name(base_name, set(providers.keys()))
+            conn_name = _prompt_connection_name(default_name)
+            
+            block = {"type": "openai_compat", "host": host}
+            if api_key:
+                block["api_key"] = api_key
+                
+            print(f"  Discovering live models for {conn_name}...")
+            from dragoman import discovery
+            discovered = discovery.discover_openai_compat(host, api_key)
+            approved = _prompt_checkbox_menu(conn_name, discovered)
+            if approved:
+                for m in approved:
+                    m["connection"] = conn_name
+                all_approved.extend(approved)
+                block["approved_models"] = [m["model_id"] for m in approved]
+                
+            providers[conn_name] = block
+            print()
+            
+        elif choice == "3":
+            print("\n--- Google Gemini ---")
+            api_key = _prompt_secret("API key", "")
+            if api_key == "__SKIP__":
+                continue
+                
+            default_name = _get_unique_name("gemini", set(providers.keys()))
+            conn_name = _prompt_connection_name(default_name)
+            
+            block = {"type": "gemini"}
+            if api_key:
+                block["api_key"] = api_key
+            
+            print(f"  Discovering models for {conn_name}...")
+            from dragoman import discovery
+            discovered = discovery.discover_gemini(api_key)
+            approved = _prompt_checkbox_menu(conn_name, discovered)
+            if approved:
+                for m in approved:
+                    m["connection"] = conn_name
+                all_approved.extend(approved)
+                block["approved_models"] = [m["model_id"] for m in approved]
+                
+            providers[conn_name] = block
+            print()
+            
+        elif choice == "4":
+            print("\n--- Perplexity ---")
+            api_key = _prompt_secret("API key", "")
+            if api_key == "__SKIP__":
+                continue
+                
+            default_name = _get_unique_name("perplexity", set(providers.keys()))
+            conn_name = _prompt_connection_name(default_name)
+            
+            block = {"type": "openai_compat", "host": "https://api.perplexity.ai"}
+            if api_key:
+                block["api_key"] = api_key
+                
+            print(f"  Discovering live models for {conn_name}...")
+            from dragoman import discovery
+            discovered = discovery.discover_openai_compat(block["host"], api_key)
+            approved = _prompt_checkbox_menu(conn_name, discovered)
+            if approved:
+                for m in approved:
+                    m["connection"] = conn_name
+                all_approved.extend(approved)
+                block["approved_models"] = [m["model_id"] for m in approved]
+                
+            providers[conn_name] = block
+            print()
+            
+        elif choice == "5":
+            print("\n--- Ollama ---")
+            host = _prompt_host("Primary host", "http://localhost:11434")
+            if not host:
+                continue
+                
+            # Ollama speaks openai protocol on /v1
+            if not host.endswith("/v1"):
+                host = host.rstrip("/") + "/v1"
+                
+            base_name = _auto_name_from_host(host)
+            default_name = _get_unique_name(base_name, set(providers.keys()))
+            conn_name = _prompt_connection_name(default_name)
+            
+            block = {"type": "openai_compat", "host": host}
+                
+            print(f"  Discovering models for {conn_name}...")
+            from dragoman import discovery
+            discovered = discovery.discover_openai_compat(host)
+            approved = _prompt_checkbox_menu(conn_name, discovered)
+            if approved:
+                for m in approved:
+                    m["connection"] = conn_name
+                all_approved.extend(approved)
+                block["approved_models"] = [m["model_id"] for m in approved]
+                
+            providers[conn_name] = block
+            print()
+            
+        else:
+            print("  [!] Invalid choice. Enter a number 1-5, or press Enter to finish.")
+            print()
 
-    # Perplexity
-    print("Perplexity:")
-    existing = cfg.get("perplexity", {})
-    api_key = _prompt_secret("api key", existing.get("api_key", ""))
-    if api_key == "__SKIP__":
-        cfg.pop("perplexity", None)
-    else:
-        default_model = existing.get("default_model") or "sonar-pro"
-        model = input(f"  default model [{default_model}]: ").strip() or default_model
-        cfg["perplexity"] = {"default_model": model}
-        if api_key:
-            cfg["perplexity"]["api_key"] = api_key
-    print()
-
-    # Gemini
-    print("Gemini (Google):")
-    existing = cfg.get("gemini", {})
-    api_key = _prompt_secret("api key", existing.get("api_key", ""))
-    if api_key == "__SKIP__":
-        cfg.pop("gemini", None)
-    else:
-        default_model = existing.get("default_model") or "gemini-2.5-flash"
-        model = input(f"  default model [{default_model}]: ").strip() or default_model
-        cfg["gemini"] = {"default_model": model}
-        if api_key:
-            cfg["gemini"]["api_key"] = api_key
-    print()
-
-    # OpenAI-compat
-    print("OpenAI-compatible endpoint (OpenAI proper, LiteLLM, vLLM, Gemini-via-proxy, …):")
-    existing = cfg.get("openai_compat", {})
-    host = _prompt_host("endpoint URL", existing.get("host", ""))
-    if host is None:
-        cfg.pop("openai_compat", None)
-    else:
-        api_key = _prompt_secret("api key (blank if endpoint doesn't need one)", existing.get("api_key", ""))
-        if api_key == "__SKIP__":
-            api_key = None
-        cfg["openai_compat"] = {"host": host}
-        if api_key:
-            cfg["openai_compat"]["api_key"] = api_key
-        if existing.get("default_model"):
-            cfg["openai_compat"]["default_model"] = existing["default_model"]
-    print()
-
+    # Save and inject phase
     cfg_mod.save_config(cfg)
-    print(f"Config saved to {cfg_mod.CONFIG_FILE}")
-    print("Env vars override config values per-invocation; references are resolved at call time.")
-    print()
+    print(f"\nConfig saved to {cfg_mod.CONFIG_FILE}")
+    print("Env vars override config values per-invocation; references are resolved at call time.\n")
+    
+    approved_table = ""
+    # Collect approved from config to support multiple sequential runs where all_approved resets but config remembers
+    
+    # We rebuild the final_approved list from the config and catalogue, so if they configure multiple providers it aggregates properly.
+    if all_approved:
+        approved_table = "| Connection | Model | Strengths | Suitable For |\n|---|---|---|---|\n"
+        seen = set()
+        for m in all_approved:
+            key = f"{m['connection']}:{m['model_id']}"
+            if key not in seen:
+                seen.add(key)
+                approved_table += f"| `{m['connection']}` | `{m['model_id']}` | {m['strengths']} | {m['suitable_for']} |\n"
 
-    # Persona
-    print("Persona setup")
-    print("Dragoman speaks inline in Claude Code via a CLAUDE.md persona fragment.")
-    print("Where should it live?")
+    print("--- Claude Setup ---")
+    print("Dragoman speaks directly to Claude Code to advise on model selection and usage.")
+    print("Where should these instructions live?")
     print("  1. Global (~/.claude/CLAUDE.md) — applies to all Claude Code sessions")
     print("  2. Project (<cwd>/CLAUDE.md) — only this project")
-    print("  3. Skip — paste it manually later")
+    print("  3. Skip — I'll paste it manually later")
     persona_choice = input("Choice [1/2/3, default 1]: ").strip() or "1"
 
     if persona_choice == "1":
         target = Path.home() / ".claude" / "CLAUDE.md"
-        result = _inject_persona(target)
+        result = _inject_persona(target, approved_table)
         print(f"  → {result} {target}")
     elif persona_choice == "2":
         target = Path.cwd() / "CLAUDE.md"
-        result = _inject_persona(target)
+        result = _inject_persona(target, approved_table)
         print(f"  → {result} {target}")
     else:
         print(f"  Persona template lives at {_persona_template_path()}")
+        
+    print("\nSetup complete! Dragoman is ready.")
     return 0
+
 
 
 # ---------- entry point ----------
@@ -472,8 +629,19 @@ def main() -> int:
         "--model", required=True,
         help="Model spec, 'provider:name' (e.g. ollama:qwen2.5:14b, auto:qwen2.5:14b).",
     )
-    p_ask.add_argument("--prompt", required=True, help="The user's task.")
+    p_ask.add_argument(
+        "--prompt",
+        help="The user's task. Required unless --messages is provided.",
+    )
+    p_ask.add_argument(
+        "--messages",
+        help="Path to a JSON file containing a conversation history array.",
+    )
     p_ask.add_argument("--system", help="Optional system prompt.")
+    p_ask.add_argument(
+        "--stream", action="store_true",
+        help="Stream the response to stderr in real time.",
+    )
     p_ask.add_argument(
         "--quiet", action="store_true",
         help="Suppress the 🐉 cost line on stderr.",
@@ -532,3 +700,76 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+def _prompt_checkbox_menu(provider_name: str, discovered: list[str]) -> list[dict]:
+    from dragoman import discovery
+    cat_approved, cat_rejected, unknown_families = discovery.map_discovered_models(provider_name, discovered)
+    
+    items = []
+    # Auto-select recommended families since the list is now curated and small
+    for m in cat_approved:
+        items.append({"id": m["model_id"], "status": "Recommended", "selected": True, "dict": m})
+    for m in cat_rejected:
+        items.append({"id": m["model_id"], "status": "Not Recommended", "selected": False, "dict": m})
+    for m in unknown_families:
+        dummy = {
+            "model_id": m,
+            "provider": provider_name,
+            "strengths": "Unknown model (manually approved)",
+            "suitable_for": "general",
+            "context": "?",
+            "propose": "yes"
+        }
+        items.append({"id": m, "status": "Unknown", "selected": False, "dict": dummy})
+        
+    if not items:
+        print(f"  [!] No models discovered from {provider_name} endpoint.")
+        return []
+
+    show_all = False
+    filter_text = ""
+    
+    while True:
+        visible_items = []
+        for i, item in enumerate(items, 1):
+            item["display_idx"] = i
+            if filter_text and filter_text not in item["id"].lower():
+                continue
+            visible_items.append(item)
+            
+        print(f"\n--- {provider_name} Models ({len(items)} discovered) ---")
+        if filter_text:
+            print(f"  (Filtering by: {filter_text!r})")
+            
+        limit = len(visible_items) if show_all else min(10, len(visible_items))
+        
+        for item in visible_items[:limit]:
+            checkbox = "[x]" if item["selected"] else "[ ]"
+            print(f"  [{item['display_idx']:2}] {checkbox} {item['id']:<40} ({item['status']})")
+            
+        if len(visible_items) > limit:
+            print(f"  ... and {len(visible_items) - limit} more hidden.")
+            
+        print("\nOptions: [S] Show all  [F <text>] Filter  [A] Select recommended  [1-X] Toggle  [Enter] Confirm")
+        choice = input("> ").strip().lower()
+        
+        if not choice:
+            break
+        elif choice == 's':
+            show_all = not show_all
+        elif choice.startswith('f '):
+            filter_text = choice[2:].strip()
+            show_all = True
+        elif choice == 'f':
+            filter_text = ""
+        elif choice == 'a':
+            for item in items:
+                item["selected"] = (item["status"] == "Recommended")
+        else:
+            for p in choice.split():
+                if p.isdigit():
+                    idx = int(p) - 1
+                    if 0 <= idx < len(items):
+                        items[idx]["selected"] = not items[idx]["selected"]
+
+    return [item["dict"] for item in items if item["selected"]]

@@ -36,7 +36,7 @@ dragoman init       # configure providers + inject persona
 
 # Sanity checks
 dragoman --help
-dragoman ask --model ollama:qwen2.5:14b --prompt "say hello"
+dragoman ask --model laptop_1:qwen2.5:32b --prompt "say hello"
 dragoman recommend "summarize 200 transcripts privately"
 ```
 
@@ -46,7 +46,7 @@ There's no formal test harness yet. If your PR makes `secrets.resolve`, `routing
 
 **Welcome:**
 - Bug fixes (with a reproducer in the PR description).
-- New providers (Gemini-native, Anthropic-Bedrock, etc.) as `routers/<name>.py` with the same `ask(model, messages, ...) -> (text, usage)` shape.
+- Enhancements to the unified `routers/openai_compat.py` wire protocol.
 - New secret backends (Linux Secret Service / `secret-tool`, Windows Credential Manager) in `secrets.py`.
 - Tightening the persona's trigger logic with concrete examples that mis-fire today.
 - Documentation patches, especially around install paths and platform differences.

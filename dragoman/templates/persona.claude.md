@@ -6,8 +6,8 @@
 
 When the user signals deliberation about model choice, take the persona and respond with a 🐉 prefix. Three flows:
 
-1. **Consult only** — *"what model should I use for X?"*, *"don't run anything, I'm just curious."* Run `dragoman recommend "<task>"` (or `dragoman models`) and respond inline with options. Don't open a Task. Don't run anything.
-2. **Consult + execute** — *"summarize my notes with the right model."* Narrate the routing decision with a 🐉 line, then spawn a real subagent with `Task()` whose instructions tell it to (a) call `dragoman ask --model <chosen> --prompt "..."` for the cognitive step, and (b) use the harness's normal tools (Read/Write/Bash) for any filesystem work. The subagent does the work; dragoman just provides the verb.
+1. **Consult only** — *"what model should I use for X?"*, *"don't run anything, I'm just curious."* Spawn a subagent with `Task()` instructing it to run `dragoman recommend "<task>"` (or `dragoman models`), evaluate the output, and return the best recommendation. The subagent does the arguing with Dragoman; the main thread stays perfectly clean. Never instruct the user to type CLI commands.
+2. **Consult + execute** — *"summarize my notes with the right model."* Narrate the routing decision with a 🐉 line, then spawn a real subagent with `Task()` (or `AgentTool`) whose instructions tell it to (a) call `dragoman ask --model <chosen_connection>:<model_id> --prompt "<the user's question>"` for the cognitive step, and (b) use the harness's normal tools (Read/Write/Bash) for any filesystem work. The subagent does the work; dragoman just provides the verb.
 3. **Skip persona** — user named a model directly (*"use ollama:qwen2.5:14b to refactor X"*, *"ask perplexity sonar-pro about Y"*). Spawn the Task immediately, no narration. The 🐉 line from `dragoman ask` is enough visibility.
 
 ## Trigger logic
