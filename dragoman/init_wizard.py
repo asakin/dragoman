@@ -214,35 +214,36 @@ def cmd_init() -> int:
     # Agent file installation
     print("\n--- Claude Code Agent ---")
     print("Dragoman installs a Claude Code sub-agent file so Claude knows how to use it.")
+    _GLOBAL = "Global (~/.claude) — all Claude Code sessions"
+    _PROJECT = "Project (./.claude) — this project only"
+    _SKIP = "Skip — I'll handle it manually"
     target_choice = questionary.select(
         "Which .claude directory should the Dragoman agent be installed in?",
-        choices=[
-            "Global (~/.claude) — all Claude Code sessions",
-            "Project (./.claude) — this project only",
-            "Skip — I'll handle it manually",
-        ],
-        default="Global (~/.claude) — all Claude Code sessions",
+        choices=[_GLOBAL, _PROJECT, _SKIP],
+        default=_GLOBAL,
     ).ask()
 
-    if target_choice and "Global" in target_choice:
-        claude_dir = Path.home() / ".claude"
-        results = agent.install(claude_dir)
-        _generate_configured_models(claude_dir, all_approved)
-        results["agent-memory/dragoman/configured-models.md"] = "generated"
-        for rel_path, status in results.items():
-            print(f"  → {status} {claude_dir / rel_path}")
-    elif target_choice and "Project" in target_choice:
-        claude_dir = Path.cwd() / ".claude"
-        results = agent.install(claude_dir)
-        _generate_configured_models(claude_dir, all_approved)
-        results["agent-memory/dragoman/configured-models.md"] = "generated"
-        for rel_path, status in results.items():
-            print(f"  → {status} {claude_dir / rel_path}")
+    if target_choice == _GLOBAL:
+        _install_agent(Path.home() / ".claude", all_approved)
+    elif target_choice == _PROJECT:
+        _install_agent(Path.cwd() / ".claude", all_approved)
     else:
         print(f"  Agent templates: {agent.templates_dir()}")
 
     print("\nSetup complete! Dragoman is ready.")
     return 0
+
+
+def _install_agent(claude_dir: Path, all_approved: list[dict]) -> None:
+    """Install agent files, generate configured-models.md, and add the CLAUDE.md import."""
+    results = agent.install(claude_dir)
+    _generate_configured_models(claude_dir, all_approved)
+    results["agent-memory/dragoman/configured-models.md"] = "generated"
+    for rel_path, status in results.items():
+        print(f"  → {status} {claude_dir / rel_path}")
+
+    md_path, md_status = agent.add_claude_md_import(claude_dir)
+    print(f"  → {md_status} {md_path}  ({agent.import_line_for(claude_dir)})")
 
 
 def _generate_configured_models(claude_dir: Path, all_approved: list[dict]) -> None:

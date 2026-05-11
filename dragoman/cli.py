@@ -45,32 +45,27 @@ def cmd_ask(args: argparse.Namespace) -> int:
             messages.append({"role": "system", "content": args.system})
         messages.append({"role": "user", "content": args.prompt})
 
+    dispatch = {
+        "gemini": providers.ask_gemini,
+        "anthropic": providers.ask_anthropic,
+        "openai_compat": providers.ask_openai_compat,
+    }
+    fn = dispatch.get(resolved.type)
+    if fn is None:
+        print(f"error: unknown connection type {resolved.type!r}", file=sys.stderr)
+        return 2
+
+    kwargs = dict(
+        model=resolved.model,
+        messages=messages,
+        api_key_ref=resolved.api_key_ref,
+        stream=args.stream,
+    )
+    if resolved.type == "openai_compat":
+        kwargs["host"] = resolved.host
+
     try:
-        if resolved.type == "gemini":
-            text, usage = providers.ask_gemini(
-                model=resolved.model,
-                messages=messages,
-                api_key_ref=resolved.api_key_ref,
-                stream=args.stream,
-            )
-        elif resolved.type == "anthropic":
-            text, usage = providers.ask_anthropic(
-                model=resolved.model,
-                messages=messages,
-                api_key_ref=resolved.api_key_ref,
-                stream=args.stream,
-            )
-        elif resolved.type == "openai_compat":
-            text, usage = providers.ask_openai_compat(
-                model=resolved.model,
-                messages=messages,
-                host=resolved.host,
-                api_key_ref=resolved.api_key_ref,
-                stream=args.stream,
-            )
-        else:
-            print(f"error: unknown connection type {resolved.type!r}", file=sys.stderr)
-            return 2
+        text, usage = fn(**kwargs)
     except Exception as e:
         print(f"error: request failed: {e}", file=sys.stderr)
         return 1
@@ -138,6 +133,14 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
                 print(f"  -  {target} not found (skipped)")
             else:
                 print(f"  -  {claude_dir} doesn't exist (skipped)")
+
+        md_path, md_status = agent.remove_claude_md_import(claude_dir)
+        if md_status == "removed":
+            print(f"  ✓  removed @import line from {md_path}")
+        elif md_status == "absent":
+            print(f"  -  no @import line in {md_path} (skipped)")
+        else:
+            print(f"  -  {md_path} doesn't exist (skipped)")
     print()
 
     print("Provider config:")
