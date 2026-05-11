@@ -25,7 +25,7 @@ dragoman ask --model ... --prompt "..."
 - dragoman version: <!-- `dragoman --version` -->
 - Python version: <!-- `python --version` -->
 - OS: <!-- macOS 14.x, Ubuntu 22.04, etc. -->
-- Provider involved: <!-- ollama / perplexity / openai-compat -->
+- Provider involved: <!-- ollama / openai / gemini / perplexity / xai / other -->
 - Provider model: <!-- e.g., qwen2.5-coder:14b -->
 
 ## Additional context

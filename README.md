@@ -56,23 +56,23 @@ api_key = "keychain://groq/apikey"              # macOS Keychain
 
 Dragoman fetches by reference, uses the key for one HTTPS call, discards it. The key never enters Claude's context.
 
-## Infinite Dynamic Providers
+## Multiple providers, multiple accounts
 
 Dragoman replaces hardcoded singleton endpoints with a dynamic provider registry. You can connect as many distinct accounts, gateways, or local instances as you want simultaneously. 
 
-For example, if you have a local laptop Ollama and a heavy basement workstation on Tailscale:
+For example, if you run Ollama on a laptop and on a separate workstation reachable via Tailscale:
 
 ```toml
 [providers.laptop_1]
 type = "openai_compat"
 host = "http://localhost:11434/v1"
 
-[providers.basement_1]
+[providers.workstation_1]
 type = "openai_compat"
-host = "http://basement.tailnet.ts.net:11434/v1"
+host = "http://workstation.tailnet.ts.net:11434/v1"
 ```
 
-Then you simply tell Claude exactly which pipe to use: `--model basement_1:qwen2.5:72b`. No magic network probing; just explicit, unopinionated routing.
+Then you simply tell Claude exactly which pipe to use: `--model workstation_1:qwen2.5:72b`. No magic network probing; just explicit, unopinionated routing.
 
 ## What it writes to your system
 

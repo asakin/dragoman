@@ -1,13 +1,13 @@
-# OPENAI
+# OpenAI
 
-## When to pick OPENAI
+## When to pick OpenAI
 - Agentic workflows requiring tool calling and computer use, like multi-step coding or automation.
 - High-precision reasoning tasks such as math proofs, scientific analysis, or long-chain logic.
 - Multimodal inputs combining text, vision, and audio for tasks like video description or image reasoning.
 - High-volume production tasks where cost-efficiency and speed balance with capability.
 - Custom fine-tuning or open-weight models for on-premise deployment.
 
-## When NOT to pick OPENAI
+## When NOT to pick OpenAI
 - Real-time web search without tools; use Perplexity for native internet access and citations.
 - Ultra-low latency audio/video generation at scale; Gemini offers better multimodal efficiency.
 - Fully open-source local inference; Ollama supports uncensored local models without API costs.
