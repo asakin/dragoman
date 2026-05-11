@@ -19,7 +19,7 @@ Flagship intelligence family for frontier agentic tasks, extended outputs up to 
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| claude-opus-4-7-20260201 | 1M | 2026-02 | no | no | yes | yes | expensive | Highest capability coding/reasoning [page:48] |
+| claude-opus-4-7 | 1M | 2026-02 | no | no | yes | yes | expensive | Highest capability coding/reasoning |
 | claude-opus-4-6 | 1M | 2025-11 | no | no | yes | yes | expensive | Batch 300k outputs |
 
 ### Claude Sonnet 4.x
@@ -27,7 +27,7 @@ Production workhorse for interactive agents, with extended thinking for dynamic 
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| claude-sonnet-4-6 | 1M | 2026-01 | no | no | yes | yes | mid | Best latency/capability balance [page:48] |
+| claude-sonnet-4-6 | 1M | 2026-01 | no | no | yes | yes | mid | Best latency/capability balance |
 | claude-sonnet-4-5 | 1M | 2025-08 | no | no | yes | yes | mid | Adaptive extended thinking |
 
 ### Claude Haiku 4.x
@@ -35,10 +35,10 @@ Latency-optimized family for high-throughput tasks like classification or quick 
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| claude-haiku-4-5 | 200K | 2025-10 | no | no | yes | yes | cheap | Lowest latency in lineup [page:48] |
+| claude-haiku-4-5 | 200K | 2025-10 | no | no | yes | yes | cheap | Lowest latency in lineup |
 
 ## Decision guidance
-- Pick `claude-opus-4-7-20260201` for frontier agentic coding over 100k outputs.
+- Pick `claude-opus-4-7` for frontier agentic coding over 100k outputs.
 - Pick `claude-sonnet-4-6` for interactive long-context agents under 5s latency.
 - Pick `claude-haiku-4-5` for high-RPM classification or multilingual QA.
 - Pick `claude-opus-4-6` for batch data generation exceeding 200k tokens.

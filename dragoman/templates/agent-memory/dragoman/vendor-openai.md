@@ -19,7 +19,7 @@ Flagship family for advanced coding, agentic tasks, and reasoning across industr
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| GPT-5.2 | 200K | 2025-12 | no | no | yes | yes | expensive | Best for agentic tasks [web:47] |
+| GPT-5.2 | 200K | 2025-12 | no | no | yes | yes | expensive | Best for agentic tasks |
 | GPT-5.2 pro | 200K | 2025-12 | no | no | yes | yes | expensive | Smarter, more precise responses |
 | GPT-5.2-Codex | 128K | 2025-12 | no | no | no | yes | mid | Optimized for agentic coding |
 | GPT-5.1 | 200K | 2025-09 | no | no | yes | yes | mid | Configurable reasoning effort |

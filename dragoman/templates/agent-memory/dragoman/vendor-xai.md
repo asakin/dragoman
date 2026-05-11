@@ -19,7 +19,7 @@ Flagship family for general chat, coding, and agentic tasks with configurable re
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| grok-4.3 | 1M | 2024-11 | no | no | yes | yes | expensive | Strongest agentic tool calling [page:61] |
+| grok-4.3 | 1M | 2024-11 | no | no | yes | yes | expensive | Strongest agentic tool calling |
 | grok-4 | 256K | 2024-11 | yes | yes | yes | yes | mid | Real-time search integration |
 
 ### Grok 3.x
@@ -27,7 +27,7 @@ Previous generation for enterprise tasks like programming and summarization, wit
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| grok-3 | 131K | 2024-11 | no | no | yes | yes | mid | Data extraction and coding [page:62] |
+| grok-3 | 131K | 2024-11 | no | no | yes | yes | mid | Data extraction and coding |
 | grok-3-mini | 131K | 2024-11 | no | no | yes | yes | cheap | Quantitative tasks, low cost |
 
 ## Decision guidance

@@ -19,7 +19,7 @@ Meta's latest open family optimized for coding, multilingual tasks, and tool use
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| llama3.3:70b | 128K | 2025-12 | no | no | yes | yes | n/a | Best coding/multilingual [web:72] |
+| llama3.3:70b | 128K | 2025-12 | no | no | yes | yes | n/a | Best coding/multilingual |
 | llama3.3:8b | 128K | 2025-12 | no | no | no | yes | n/a | Fast local inference |
 
 ### Qwen 3

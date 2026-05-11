@@ -19,7 +19,7 @@ Advanced family for complex reasoning, agentic workflows, and multimodal problem
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| gemini-3.1-pro | 1M | 2026-01 | no | no | yes | yes | expensive | Complex agentic coding [page:71] |
+| gemini-3.1-pro | 1M | 2026-01 | no | no | yes | yes | expensive | Complex agentic coding |
 | gemini-3-flash | 1M | 2026-05 | no | no | yes | yes | mid | Strong multimodal reasoning |
 | gemini-3.1-flash-lite | 1M | 2026-05 | no | no | yes | yes | cheap | Low latency high-volume |
 
@@ -28,7 +28,7 @@ Workhorse family for balanced price-performance in reasoning, coding, and genera
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| gemini-2.5-pro | 1M | 2025-09 | no | no | yes | yes | mid | Adaptive thinking 1M context [page:71] |
+| gemini-2.5-pro | 1M | 2025-09 | no | no | yes | yes | mid | Adaptive thinking 1M context |
 | gemini-2.5-flash | 1M | 2025-09 | no | no | yes | yes | cheap | Controllable thinking budget |
 | gemini-2.5-flash-lite | 1M | 2025-09 | no | no | yes | yes | cheap | Cost-optimized throughput |
 

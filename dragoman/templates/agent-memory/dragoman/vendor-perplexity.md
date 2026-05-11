@@ -19,30 +19,30 @@ Perplexity's native family optimized for fast grounded search and research, powe
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| perplexity/sonar-deep-research | 128K | 2026-02 | yes | yes | no | yes | mid | Exhaustive web research reports [web:71] |
+| perplexity/sonar-deep-research | 128K | 2026-02 | yes | yes | no | yes | mid | Exhaustive web research reports |
 | perplexity/sonar-large-online | 128K | 2026-02 | yes | yes | no | yes | expensive | Comprehensive analysis with sources |
 | perplexity/sonar-medium-online | 128K | 2026-02 | yes | yes | no | yes | mid | Balanced speed and depth |
-| perplexity/sonar | 128K | 2026-02 | yes | yes | no | yes | cheap | Fast grounded Q&A [web:71] |
+| perplexity/sonar | 128K | 2026-02 | yes | yes | no | yes | cheap | Fast grounded Q&A |
 
 ### Preset Orchestrations
 Pre-configured multi-model setups for specialized agentic tasks with automatic routing.
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| perplexity/preset/pro-search | 128K | n/a | yes | yes | no | yes | mid | Optimized search agents [web:72] |
+| perplexity/preset/pro-search | 128K | n/a | yes | yes | no | yes | mid | Optimized search agents |
 
 ### Third-party Frontier
 Access to hosted frontier models from partners with Perplexity's search/tools layer.
 
 | Model ID | Context | Cutoff | Web | Citations | Vision | Tools | Cost | Notes |
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
-| openai/gpt-5.4 | 200K | 2025-12 | yes | yes | yes | yes | expensive | Advanced reasoning with search [web:72] |
+| openai/gpt-5.5 | 200K | 2025-12 | yes | yes | yes | yes | expensive | Advanced reasoning with search |
 | anthropic/claude-sonnet-4-6 | 1M | 2026-01 | yes | yes | yes | yes | mid | Long-context analysis |
-| xai/grok-4.3 | 1M | 2026-01 | yes | yes | yes | yes | mid | Truth-seeking agents [web:71] |
+| xai/grok-4.3 | 1M | 2026-01 | yes | yes | yes | yes | mid | Truth-seeking agents |
 
 ## Decision guidance
 - Pick `perplexity/sonar-deep-research` for multi-page web synthesis with citations.
 - Pick `perplexity/sonar` for quick factual answers under 1s latency.
-- Pick `openai/gpt-5.4` for reasoning-heavy research with vision needs.
+- Pick `openai/gpt-5.5` for reasoning-heavy research with vision needs.
 - Pick `anthropic/claude-sonnet-4-6` for 1M+ context document analysis.
 - Pick `perplexity/preset/pro-search` for automatic model routing in agents.
