@@ -82,8 +82,8 @@ _PROVIDERS = [
 ]
 
 
-def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict, list[dict]] | None:
-    """Run the setup flow for one provider. Returns (conn_name, block, approved_models) or None."""
+def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict] | None:
+    """Run the setup flow for one provider. Returns (conn_name, block) or None."""
     print(f"\n--- {prov['name']} ---")
 
     # Host
@@ -138,11 +138,9 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict, list[di
 
     approved = _select_models(conn_name, raw_models)
     if approved:
-        for m in approved:
-            m["connection"] = conn_name
         block["approved_models"] = [m["model_id"] for m in approved]
 
-    return conn_name, block, approved
+    return conn_name, block
 
 
 def _select_models(conn_name: str, raw_models: list[str]) -> list[dict]:
@@ -187,7 +185,6 @@ def cmd_init() -> int:
 
     cfg = cfg_mod.load_config()
     providers = cfg.setdefault("providers", {})
-    all_approved: list[dict] = []
 
     while True:
         provider_names = [p["name"] for p in _PROVIDERS] + ["Done — finish setup"]
@@ -202,9 +199,8 @@ def cmd_init() -> int:
         prov = next(p for p in _PROVIDERS if p["name"] == choice)
         result = _setup_provider(prov, set(providers.keys()))
         if result:
-            conn_name, block, approved = result
+            conn_name, block = result
             providers[conn_name] = block
-            all_approved.extend(approved)
             print(f"  ✓ {conn_name} configured.\n")
 
     # Save config
@@ -224,9 +220,9 @@ def cmd_init() -> int:
     ).ask()
 
     if target_choice == _GLOBAL:
-        _install_agent(Path.home() / ".claude", all_approved)
+        _install_agent(Path.home() / ".claude", providers)
     elif target_choice == _PROJECT:
-        _install_agent(Path.cwd() / ".claude", all_approved)
+        _install_agent(Path.cwd() / ".claude", providers)
     else:
         print(f"  Agent templates: {agent.templates_dir()}")
 
@@ -234,10 +230,10 @@ def cmd_init() -> int:
     return 0
 
 
-def _install_agent(claude_dir: Path, all_approved: list[dict]) -> None:
+def _install_agent(claude_dir: Path, providers: dict) -> None:
     """Install agent files, generate configured-models.md, and add the CLAUDE.md import."""
     results = agent.install(claude_dir)
-    _generate_configured_models(claude_dir, all_approved)
+    _generate_configured_models(claude_dir, providers)
     results["agent-memory/dragoman/configured-models.md"] = "generated"
     for rel_path, status in results.items():
         print(f"  → {status} {claude_dir / rel_path}")
@@ -246,8 +242,13 @@ def _install_agent(claude_dir: Path, all_approved: list[dict]) -> None:
     print(f"  → {md_status} {md_path}  ({agent.import_line_for(claude_dir)})")
 
 
-def _generate_configured_models(claude_dir: Path, all_approved: list[dict]) -> None:
-    """Generate the configured-models.md file based on discovered models."""
+def _generate_configured_models(claude_dir: Path, providers: dict) -> None:
+    """Render configured-models.md from the merged providers config.
+
+    Sources from cfg["providers"] (the cumulative truth), not from this
+    session's additions. Re-running `dragoman init` to add one provider
+    preserves the prior ones in the markdown record.
+    """
     content = [
         "# Configured models",
         "",
@@ -255,20 +256,16 @@ def _generate_configured_models(claude_dir: Path, all_approved: list[dict]) -> N
         "",
         f"Last updated: {date.today().isoformat()}",
         "",
-        "## Connections"
+        "## Connections",
     ]
 
-    # Group by connection
-    grouped = {}
-    for m in all_approved:
-        grouped.setdefault(m["connection"], []).append(m["model_id"])
-
-    for conn, models in grouped.items():
-        # Heuristic for local vs remote
-        loc_type = "local" if conn == "ollama" else "remote"
+    for conn, settings in providers.items():
+        host = settings.get("host") or ""
+        is_local = "localhost" in host or "127.0.0.1" in host
+        loc_type = "local" if is_local else "remote"
         content.append("")
         content.append(f"### {conn} ({loc_type})")
-        for model in sorted(set(models)):
+        for model in sorted(set(settings.get("approved_models", []))):
             content.append(f"- `{model}`")
 
     target = claude_dir / "agent-memory" / "dragoman" / "configured-models.md"
