@@ -19,7 +19,7 @@ labels: enhancement
 
 ## Why this fits dragoman (and not somewhere else)
 
-<!-- Dragoman is intentionally small: a CLI + a CLAUDE.md fragment. New abstractions
+<!-- Dragoman is intentionally small: a CLI + a Claude Code agent file. New abstractions
      have a high bar. A short note on why this belongs here vs. in a wrapper, plugin,
      or upstream provider helps the conversation. -->
 

@@ -1,12 +1,12 @@
 # Contributing to dragoman
 
-Thanks for considering a contribution. Dragoman is small on purpose — a CLI plus a CLAUDE.md fragment — so most patches land fast.
+Thanks for considering a contribution. Dragoman is small on purpose — a CLI plus a Claude Code agent file — so most patches land fast.
 
 ## Before you start
 
-- **Open an issue first for anything non-trivial.** Bug reports and small fixes are fine to send as PRs directly. For new providers, secret-store backends, or anything that touches the persona, please open an issue so we can talk shape before you write code.
+- **Open an issue first for anything non-trivial.** Bug reports and small fixes are fine to send as PRs directly. For new providers, secret-store backends, or anything that touches the agent file, please open an issue so we can talk shape before you write code.
 - **Keep dragoman tool-less.** Dragoman makes one HTTPS call per `ask` invocation and never executes shell commands. PRs that re-introduce an agent loop, tool-execution surface, or `bash` capability will be politely closed — that work belongs in Claude Code's own harness, not here.
-- **Check the persona stays a fragment.** It's deliberately readable in five minutes. PRs that turn it into a config schema or framework will be politely closed with a roadmap pointer.
+- **Check the agent file stays readable.** It's deliberately readable in five minutes. PRs that turn it into a config schema or framework will be politely closed with a roadmap pointer.
 
 ## Sign your commits — DCO, not CLA
 
@@ -32,7 +32,7 @@ The email must match your committer email. If you forgot, amend with `git commit
 git clone https://github.com/asakin/dragoman.git
 cd dragoman
 pip install -e .
-dragoman init       # configure providers + inject persona
+dragoman init       # configure providers + install agent file
 
 # Sanity checks
 dragoman --help
@@ -48,7 +48,7 @@ There's no formal test harness yet. If your PR makes `secrets.resolve`, `routing
 - Bug fixes (with a reproducer in the PR description).
 - Enhancements to the unified `routers/openai_compat.py` wire protocol.
 - New secret backends (Linux Secret Service / `secret-tool`, Windows Credential Manager) in `secrets.py`.
-- Tightening the persona's trigger logic with concrete examples that mis-fire today.
+- Tightening the agent file's delegation logic with concrete examples that mis-fire today.
 - Documentation patches, especially around install paths and platform differences.
 
 **Hard sells:**

@@ -24,38 +24,7 @@ def load_config() -> dict:
     if not CONFIG_FILE.exists():
         return {}
     with open(CONFIG_FILE, "rb") as f:
-        cfg = tomllib.load(f)
-        
-    # Migrate legacy singletons to the new dynamic provider registry
-    providers = cfg.setdefault("providers", {})
-    needs_save = False
-    
-    legacy_map = {
-        "openai_compat": "openai_compat",
-        "openai": "openai_compat",
-        "perplexity": "openai_compat",
-        "ollama": "openai_compat",
-        "gemini": "gemini"
-    }
-    
-    for legacy_key, internal_type in legacy_map.items():
-        if legacy_key in cfg:
-            block = cfg.pop(legacy_key)
-            block["type"] = internal_type
-            
-            # Ollama natively didn't enforce a host sometimes, let's ensure it has one for openai_compat
-            if legacy_key == "ollama" and "host" not in block:
-                block["host"] = "http://localhost:11434/v1"
-            elif legacy_key == "ollama" and not block.get("host", "").endswith("/v1"):
-                block["host"] = block["host"].rstrip("/") + "/v1"
-                
-            providers[legacy_key] = block
-            needs_save = True
-            
-    if needs_save:
-        save_config(cfg)
-        
-    return cfg
+        return tomllib.load(f)
 
 
 def save_config(config: dict) -> None:
@@ -67,33 +36,37 @@ def save_config(config: dict) -> None:
         "",
     ]
     
+    import re
+    def _quote_toml_key(k: str) -> str:
+        return k if re.match(r"^[A-Za-z0-9_-]+$", k) else f'"{k}"'
+
     def _write_section(name: str, entries: dict):
         lines.append(f"[{name}]")
         for key, value in entries.items():
             if value is None or value == "":
                 continue
+            key_str = _quote_toml_key(key)
             if isinstance(value, bool):
-                lines.append(f"{key} = {'true' if value else 'false'}")
+                lines.append(f"{key_str} = {'true' if value else 'false'}")
             elif isinstance(value, (int, float)):
-                lines.append(f"{key} = {value}")
+                lines.append(f"{key_str} = {value}")
             elif isinstance(value, list):
-                # Simple list of strings
                 items = ", ".join(f'"{str(v).replace(chr(92), chr(92)*2).replace(chr(34), chr(92)+chr(34))}"' for v in value)
-                lines.append(f"{key} = [{items}]")
+                lines.append(f"{key_str} = [{items}]")
             else:
                 escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
-                lines.append(f'{key} = "{escaped}"')
+                lines.append(f'{key_str} = "{escaped}"')
         lines.append("")
 
     for section, entries in config.items():
         if isinstance(entries, dict):
-            # Check if it contains nested dicts (e.g. providers.groq)
             if any(isinstance(v, dict) for v in entries.values()):
                 for subsection, subentries in entries.items():
                     if isinstance(subentries, dict):
-                        _write_section(f"{section}.{subsection}", subentries)
+                        table_name = f"{_quote_toml_key(section)}.{_quote_toml_key(subsection)}"
+                        _write_section(table_name, subentries)
             else:
-                _write_section(section, entries)
+                _write_section(_quote_toml_key(section), entries)
                 
     CONFIG_FILE.write_text("\n".join(lines))
 

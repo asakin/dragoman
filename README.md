@@ -8,11 +8,10 @@ I have a GPU running Ollama. I pay for OpenAI, Gemini, and Perplexity because ea
 
 ## What it does
 
-Three commands. No agent loop. No tool execution. No shell. Just one HTTPS call per `ask`.
+Two commands. No agent loop. No tool execution. No shell. Just one HTTPS call per `ask`.
 
 ```bash
 dragoman ask --model perplexity:sonar-pro --prompt "..."   # one HTTPS call, prints text
-dragoman recommend "summarize 200 transcripts privately"   # rules table + your config
 dragoman models                                            # what's configured, one per line
 ```
 
@@ -99,4 +98,4 @@ Apache 2.0. See [`LICENSE`](./LICENSE).
 
 ---
 
-*Dragoman was the translator-fixer at Ottoman, Levantine, and European courts. The English word and the Hebrew* meturgeman *share an Akkadian root and have nothing to do with reptiles. The 🐉 emoji is a typo I refuse to fix.*
+*Dragoman was the translator-fixer at Ottoman, Levantine, and European courts. The English word and the Hebrew* meturgeman *share an Akkadian root and have nothing to do with reptiles. The 🐉 emoji is a typo I refuse to fix. There is also no evidence that dragons were actually reptiles.*

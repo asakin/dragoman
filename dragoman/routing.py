@@ -20,23 +20,36 @@ class ResolvedModel:
     api_key_ref: Optional[str] = None
 
 
-def parse(model_spec: str) -> tuple[str, str]:
-    """Parse 'connection:name' into (connection, name)."""
+def parse(model_spec: str, known_connections: list[str] | None = None) -> tuple[str, str]:
+    """Parse 'connection:name' into (connection, name).
+
+    When ``known_connections`` is supplied the parser tries each connection name
+    (longest first) as a prefix so that connection names that themselves contain
+    colons (e.g. ``localhost:11434``) are resolved correctly.
+    """
     if ":" not in model_spec:
         raise ValueError(
             f"model spec must be 'connection:name' (e.g. groq_1:llama3); got {model_spec!r}"
         )
+
+    if known_connections:
+        # Try longest connection name first to avoid prefix collisions.
+        for conn in sorted(known_connections, key=len, reverse=True):
+            prefix = conn + ":"
+            if model_spec.startswith(prefix):
+                return conn, model_spec[len(prefix):]
+
     connection, name = model_spec.split(":", 1)
     return connection, name
 
 
 def resolve(model_spec: str) -> ResolvedModel:
     """Resolve a model spec by looking up its connection in the config."""
-    connection, name = parse(model_spec)
-    
     cfg = config.load_config()
     providers = cfg.get("providers", {})
-    
+
+    connection, name = parse(model_spec, known_connections=list(providers.keys()))
+
     if connection not in providers:
         raise RuntimeError(
             f"Connection {connection!r} not found in config. Run `dragoman init`."

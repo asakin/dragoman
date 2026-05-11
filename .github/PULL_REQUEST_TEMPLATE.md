@@ -21,7 +21,7 @@ dragoman <subcommand> ...
 - [ ] README updated if behavior or contracts changed.
 - [ ] No new dependencies added without justification.
 - [ ] Dragoman remains tool-less (no agent loop, no shell execution, no `bash` capability).
-- [ ] Persona template untouched, OR persona changes called out explicitly with rationale.
+- [ ] Agent file (`templates/dragoman.md`) untouched, OR changes called out explicitly with rationale.
 
 ## Notes for the reviewer
 

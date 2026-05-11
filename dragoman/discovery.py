@@ -38,6 +38,22 @@ def discover_gemini(api_key: str = None) -> list[str]:
         # print(f"Gemini discovery failed: {e}")
         return []
 
+def discover_anthropic(api_key: str = None) -> list[str]:
+    """Discover models from Anthropic."""
+    try:
+        url = "https://api.anthropic.com/v1/models"
+        req = urllib.request.Request(url)
+        req.add_header("anthropic-version", "2023-06-01")
+        if api_key:
+            resolved = secrets.resolve(api_key)
+            if resolved:
+                req.add_header("x-api-key", resolved)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            return [m["id"] for m in data.get("data", [])]
+    except Exception as e:
+        return []
+
 def parse_catalogue() -> list[dict]:
     """Parse the model-catalogue.md into a structured list of dictionaries."""
     import pathlib
@@ -55,7 +71,7 @@ def parse_catalogue() -> list[dict]:
                 continue
             if in_table:
                 parts = [p.strip() for p in line.split('|')]
-                if len(parts) >= 13:
+                if len(parts) >= 12:
                     rows.append({
                         "model_id": parts[1],
                         "provider": parts[2],
@@ -66,7 +82,6 @@ def parse_catalogue() -> list[dict]:
                         "context": parts[9],
                         "suitable_for": parts[10],
                         "propose": parts[11].lower() == "yes",
-                        "notes": parts[12]
                     })
     return rows
 

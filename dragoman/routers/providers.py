@@ -1,11 +1,8 @@
-"""OpenAI-compatible router. Single-shot /chat/completions.
+"""Provider HTTP backends.
 
-Two flavors:
-- ask_perplexity(model, messages)        — host pinned to api.perplexity.ai;
-                                            api key from PERPLEXITY_API_KEY
-                                            (env, op://, keychain://, or literal in config).
-- ask_openai_compat(model, messages)     — host from OPENAI_COMPAT_HOST env or config;
-                                            api key (optional) from OPENAI_COMPAT_API_KEY.
+Two protocols, same interface:
+- ask_openai_compat(model, messages, host, api_key_ref)  — OpenAI-compatible /chat/completions
+- ask_gemini(model, messages, api_key_ref)                — Google Generative Language API
 
 Bearer tokens are resolved at call time, used in one HTTPS request, and
 discarded. They never enter the calling agent's context.
@@ -132,12 +129,16 @@ def ask_openai_compat(
     from dragoman import secrets
     api_key = secrets.resolve(api_key_ref) if api_key_ref else ""
     
+    # Some hosts already include the /v1 prefix (e.g. http://localhost:11434/v1).
+    # Avoid doubling it when that's the case.
+    endpoint = "/chat/completions" if normalized.rstrip("/").endswith("/v1") else "/v1/chat/completions"
+
     return _ask(
         host=normalized,
         model=model,
         messages=messages,
         api_key=api_key,
-        endpoint="/v1/chat/completions",
+        endpoint=endpoint,
         stream=stream,
     )
 
@@ -233,5 +234,106 @@ def ask_gemini(
     usage = {
         "tokens_in": int(usage_payload.get("promptTokenCount", 0)),
         "tokens_out": int(usage_payload.get("candidatesTokenCount", 0)),
+    }
+    return text, usage
+
+
+def ask_anthropic(
+    model: str, 
+    messages: list[dict], 
+    api_key_ref: str = None,
+    stream: bool = False
+) -> tuple[str, dict]:
+    from dragoman import secrets
+    api_key = secrets.resolve(api_key_ref) if api_key_ref else ""
+    if not api_key:
+        raise RuntimeError(
+            "API key not configured for this Anthropic connection. "
+            "run `dragoman init`"
+        )
+
+    system_text = ""
+    anthropic_messages = []
+    
+    for m in messages:
+        if m["role"] == "system":
+            system_text += m["content"] + "\n"
+        else:
+            anthropic_messages.append({"role": m["role"], "content": m["content"]})
+            
+    body = {
+        "model": model,
+        "max_tokens": 8192,
+        "messages": anthropic_messages,
+        "stream": stream
+    }
+    if system_text:
+        body["system"] = system_text.strip()
+        
+    url = "https://api.anthropic.com/v1/messages"
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+    }
+
+    max_retries = 3
+    base_delay = 2.0
+
+    for attempt in range(max_retries + 1):
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT_SECONDS) as resp:
+                if stream:
+                    text_chunks = []
+                    for line in resp:
+                        line = line.decode("utf-8").strip()
+                        if line.startswith("data: "):
+                            try:
+                                chunk = json.loads(line[6:])
+                                if chunk.get("type") == "content_block_delta":
+                                    content = chunk["delta"].get("text", "")
+                                    if content:
+                                        print(content, end="", file=sys.stderr, flush=True)
+                                        text_chunks.append(content)
+                            except json.JSONDecodeError:
+                                pass
+                    if text_chunks:
+                        print(file=sys.stderr, flush=True)
+                    text = "".join(text_chunks)
+                    return text, {"tokens_in": 0, "tokens_out": 0}
+                else:
+                    payload = json.loads(resp.read().decode("utf-8"))
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (408, 429, 500, 502, 503, 504) and attempt < max_retries:
+                time.sleep(base_delay * (2 ** attempt))
+                continue
+            body_preview = ""
+            try:
+                body_preview = e.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                pass
+            raise RuntimeError(
+                f"anthropic returned HTTP {e.code}: {body_preview or e.reason}"
+            ) from None
+        except urllib.error.URLError as e:
+            if attempt < max_retries:
+                time.sleep(base_delay * (2 ** attempt))
+                continue
+            raise RuntimeError(f"Connection failed to Anthropic: {e.reason}") from None
+
+    if "content" not in payload or not payload["content"]:
+        raise RuntimeError(f"anthropic returned unexpected payload: {payload!r}")
+
+    text = "".join([c["text"] for c in payload["content"] if c["type"] == "text"])
+    usage_payload = payload.get("usage", {})
+    usage = {
+        "tokens_in": int(usage_payload.get("input_tokens", 0)),
+        "tokens_out": int(usage_payload.get("output_tokens", 0)),
     }
     return text, usage
