@@ -33,6 +33,17 @@ def _validate_key_ref(value: str) -> bool | str:
         "  env:VAR_NAME"
     )
 
+def _validate_conn_name(value: str) -> bool | str:
+    """Questionary validator: connection name cannot contain colons or spaces."""
+    val = value.strip()
+    if not val:
+        return True
+    import re
+    if not re.match(r"^[A-Za-z0-9_-]+$", val):
+        return "Connection name must be alphanumeric (letters, numbers, dashes, underscores) with no colons or spaces."
+    return True
+
+
 def _auto_name(host: str) -> str:
     try:
         parsed = urlparse(host if "://" in host else f"http://{host}")
@@ -98,13 +109,11 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict, list[di
         api_key = api_key.strip() or None
 
     # Connection name
-    if "Ollama" in prov["name"]:
-        base = "ollama"
-    else:
-        base = _auto_name(host) if host else prov["name"].split()[0].lower()
+    base = _auto_name(host) if host else prov["name"].split()[0].lower()
     default = _unique_name(base, existing_names)
     conn_name = questionary.text(
-        f"Connection handle (used as handle:model_id) [{default}]:"
+        f"Connection handle (used as handle:model_id) [{default}]:",
+        validate=_validate_conn_name,
     ).ask()
     conn_name = (conn_name or "").strip() or default
 
@@ -215,14 +224,14 @@ def cmd_init() -> int:
     if target_choice and "Global" in target_choice:
         claude_dir = Path.home() / ".claude"
         results = agent.install(claude_dir)
-        _generate_configured_models(claude_dir, providers)
+        _generate_configured_models(claude_dir, all_approved)
         results["agent-memory/dragoman/configured-models.md"] = "generated"
         for rel_path, status in results.items():
             print(f"  → {status} {claude_dir / rel_path}")
     elif target_choice and "Project" in target_choice:
         claude_dir = Path.cwd() / ".claude"
         results = agent.install(claude_dir)
-        _generate_configured_models(claude_dir, providers)
+        _generate_configured_models(claude_dir, all_approved)
         results["agent-memory/dragoman/configured-models.md"] = "generated"
         for rel_path, status in results.items():
             print(f"  → {status} {claude_dir / rel_path}")
@@ -233,8 +242,8 @@ def cmd_init() -> int:
     return 0
 
 
-def _generate_configured_models(claude_dir: Path, providers: dict) -> None:
-    """Generate the configured-models.md file based on all known providers."""
+def _generate_configured_models(claude_dir: Path, all_approved: list[dict]) -> None:
+    """Generate the configured-models.md file based on discovered models."""
     content = [
         "# Configured models",
         "",
@@ -245,17 +254,16 @@ def _generate_configured_models(claude_dir: Path, providers: dict) -> None:
         "## Connections"
     ]
 
-    for conn, block in providers.items():
+    # Group by connection
+    grouped = {}
+    for m in all_approved:
+        grouped.setdefault(m["connection"], []).append(m["model_id"])
+
+    for conn, models in grouped.items():
         # Heuristic for local vs remote
-        loc_type = "local" if "localhost" in conn or conn == "ollama" else "remote"
+        loc_type = "local" if conn == "ollama" else "remote"
         content.append("")
         content.append(f"### {conn} ({loc_type})")
-        
-        models = block.get("approved_models", [])
-        if not models:
-            content.append("- *(no models configured)*")
-            continue
-            
         for model in sorted(set(models)):
             content.append(f"- `{model}`")
 

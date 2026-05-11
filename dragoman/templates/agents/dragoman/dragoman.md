@@ -1,5 +1,5 @@
 ---
-name: dragoman
+name: §dragoman
 description: A specialist that takes a question, picks the best non-Anthropic LLM for it (Ollama, Perplexity, OpenAI, Gemini, or any OpenAI-compatible endpoint), conducts a short conversation with that model if needed, and returns the answer. Use when the user names a provider or model, asks for a local/offline answer, wants recency or citations, has bulk work, or asks "which model should I use for X?". Don't use for latency-sensitive edits, code review, or anything Sonnet handles well — Dragoman is additive, not the default.
 tools: Read, Write, Edit, Bash
 model: sonnet
