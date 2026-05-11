@@ -45,16 +45,6 @@ Microsoft's small high-quality family for on-device tasks, optimized for speed a
 |----------|---------|--------|-----|-----------|--------|-------|------|-------|
 | phi-4-mini:14b | 128K | 2025-10 | no | no | yes | yes | n/a | Best small model quality |
 
-## CLI model spec format
-
-When invoking Ollama models via `dragoman ask`, the correct format is:
-
-    --connection ollama --model localhost:11434:<model-name>
-
-Example: `localhost:11434:qwen2.5:14b`
-
-The `ollama:<model-name>` prefix form is **not valid** and will fail. Always use the localhost address format.
-
 ## Decision guidance
 - Pick `llama3.3:70b` when coding or multilingual tasks need high accuracy on RTX 4090.
 - Pick `qwen3:14b` for math/reasoning on mid-range hardware like RTX 4070.

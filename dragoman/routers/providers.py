@@ -128,17 +128,17 @@ def ask_openai_compat(
         
     from dragoman import secrets
     api_key = secrets.resolve(api_key_ref) if api_key_ref else ""
-    
-    # Some hosts already include the /v1 prefix (e.g. http://localhost:11434/v1).
-    # Avoid doubling it when that's the case.
-    endpoint = "/chat/completions" if normalized.rstrip("/").endswith("/v1") else "/v1/chat/completions"
 
+    # The stored host is the full base URL up to (but not including) /chat/completions.
+    # Vendors that use a version path (OpenAI, LiteLLM proxies, Ollama-via-LiteLLM, ...)
+    # bake `/v1` into their host. Vendors that don't (Perplexity) leave it out.
+    # Dragoman doesn't try to be clever about this — what's stored is what gets called.
     return _ask(
         host=normalized,
         model=model,
         messages=messages,
         api_key=api_key,
-        endpoint=endpoint,
+        endpoint="/chat/completions",
         stream=stream,
     )
 

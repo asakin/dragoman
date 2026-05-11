@@ -89,7 +89,10 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict, list[di
     # Host
     host = prov["host"]
     if prov["needs_host"]:
-        raw = questionary.text("Endpoint URL:").ask()
+        raw = questionary.text(
+            "Endpoint URL (include version path if the vendor uses one, "
+            "e.g. https://api.openai.com/v1 — Dragoman appends /chat/completions):"
+        ).ask()
         if not raw:
             return None
         host = _normalize_host(raw)
