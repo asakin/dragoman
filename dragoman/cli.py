@@ -134,11 +134,11 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
             else:
                 print(f"  -  {claude_dir} doesn't exist (skipped)")
 
-        md_path, md_status = agent.remove_claude_md_import(claude_dir)
+        md_path, md_status = agent.remove_claude_md_block(claude_dir)
         if md_status == "removed":
-            print(f"  ✓  removed @import line from {md_path}")
+            print(f"  ✓  removed Dragoman block from {md_path}")
         elif md_status == "absent":
-            print(f"  -  no @import line in {md_path} (skipped)")
+            print(f"  -  no Dragoman block in {md_path} (skipped)")
         else:
             print(f"  -  {md_path} doesn't exist (skipped)")
     print()

@@ -238,8 +238,8 @@ def _install_agent(claude_dir: Path, providers: dict) -> None:
     for rel_path, status in results.items():
         print(f"  → {status} {claude_dir / rel_path}")
 
-    md_path, md_status = agent.add_claude_md_import(claude_dir)
-    print(f"  → {md_status} {md_path}  ({agent.import_line_for(claude_dir)})")
+    md_path, md_status = agent.add_claude_md_block(claude_dir)
+    print(f"  → {md_status} {md_path}  (Dragoman block)")
 
 
 def _generate_configured_models(claude_dir: Path, providers: dict) -> None:

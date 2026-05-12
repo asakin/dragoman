@@ -86,7 +86,7 @@ You don't need a plugin system that doesn't exist yet. You don't need to reverse
 | --- | --- | --- | --- |
 | Provider config | `~/.config/dragoman/config.toml` | `dragoman init` | `dragoman uninstall --purge-config` |
 | Sub-agent files | `~/.claude/agents/dragoman/` | `dragoman init` | `dragoman uninstall` |
-| Persona import | `~/.claude/CLAUDE.md` | `dragoman init` | `dragoman uninstall` |
+| Persona block | `~/.claude/CLAUDE.md` (inline, between `<!-- BEGIN DRAGOMAN -->` markers) | `dragoman init` | `dragoman uninstall` |
 
 Clean removal: `dragoman uninstall` reverses everything. Add `--purge-config` to also delete your provider config.
 
