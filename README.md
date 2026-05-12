@@ -1,101 +1,108 @@
-# dragoman
+# 🐉 Dragoman
 
-A small CLI that lets [Claude Code](https://docs.claude.com/en/docs/claude-code) reach non-Anthropic models — Ollama (local), Perplexity (search-augmented), OpenAI, Gemini, anything OpenAI-compatible — through one verb the existing subagent runtime can call.
+[![PyPI](https://img.shields.io/pypi/v/dragoman-ai)](https://pypi.org/project/dragoman-ai/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
+[![Status](https://img.shields.io/badge/status-alpha-orange)]()
 
-I have a GPU running Ollama. I pay for OpenAI, Gemini, and Perplexity because each is the right answer for a different shape of question. Claude Code is the conductor. Dragoman is the verb that lets the conductor talk to the rest of the orchestra.
+**Give Claude Code access to every other AI model you pay for.**
 
-**v0.6.1 alpha. Apache 2.0.**
+You use Claude Code. You also pay for Perplexity, OpenAI, Gemini, or run Ollama locally. Right now Claude can't reach any of them. Dragoman fixes that — it plugs into Claude Code's sub-agent system and lets it route questions to the right model, automatically.
 
-## What it does
+## What does that look like?
 
-Two commands. No agent loop. No tool execution. No shell. Just one HTTPS call per `ask`.
+You're in Claude Code and ask: *"What happened in the news today about the OpenAI acquisition?"*
 
-```bash
-dragoman ask --model perplexity:sonar-pro --prompt "..."   # one HTTPS call, prints text
-dragoman models                                            # what's configured, one per line
-```
+Instead of *"I don't have web access,"* Claude recognizes this is a search question, hands it to Dragoman, and Dragoman routes it to Perplexity — which was built for exactly that. The answer comes back into your Claude session with sources.
 
-The persona injected by `dragoman init` teaches Claude Code when to spawn a real `Task()` subagent that uses `dragoman ask` for the cognitive step. All filesystem and shell work happens through Claude Code's normal tools — the harness's audit, fan-out, and permissions stay intact. Dragoman holds keys; the harness holds the runtime.
+**More things you can do:**
+
+- 🔍 **Search the web** — "Find me sources on X," "what's the latest on Y" → routes to Perplexity
+- 🧠 **Ask another model** — "What would GPT-5 say?" or "Try Gemini on this" → routes to that provider
+- 🏠 **Stay local** — "Run this through Llama on my machine" → routes to Ollama, nothing leaves your network
+- 🔀 **Fan out** — Send the same question to four models and have Claude synthesize the best answer
+- 🎯 **Upgrade selectively** — Coding in Sonnet, but need Opus + GPT-5 for a deep research question? Just ask
 
 ## Install
 
-You can install Dragoman securely using any modern Python tool manager:
-
 ```bash
-# Using Homebrew (macOS/Linux)
+# Homebrew (macOS)
 brew install asakin/tap/dragoman
 
-# Using uv (Fastest)
+# uv (fastest)
 uv tool install dragoman-ai
 
-# Using pipx (Standard)
+# pipx
 pipx install dragoman-ai
 ```
 
-Then, initialize your config and provider keys:
+Then run the setup wizard:
+
 ```bash
 dragoman init
 ```
 
-Open a fresh Claude Code session. Try: *"What's the best model for [your task]?"* If the dragon shows up, it works.
+It walks you through connecting your providers — API keys, Ollama hosts, whatever you use — and installs the sub-agent persona into Claude Code. Open a fresh Claude Code session and try: *"What's the latest news on [topic]?"*
 
-## Keys live where you already keep them
+## Your keys never leave your machine
 
-API keys can be literal strings, environment variables, or references resolved at call time:
+Dragoman resolves API keys at call time from wherever you already keep them, uses each key for one request, and throws it away. The key never enters Claude's context window.
 
 ```toml
-[providers.perplexity_1]
+# ~/.config/dragoman/config.toml
+
+[providers.perplexity]
 type = "openai_compat"
 host = "https://api.perplexity.ai"
 api_key = "op://Personal/Perplexity/credential"   # 1Password CLI
 
-[providers.groq_1]
+[providers.openai]
 type = "openai_compat"
-host = "https://api.groq.com/v1"
-api_key = "keychain://groq/apikey"              # macOS Keychain
+host = "https://api.openai.com/v1"
+api_key = "keychain://openai/apikey"               # macOS Keychain
+
+[providers.ollama]
+type = "openai_compat"
+host = "http://localhost:11434/v1"                  # no key needed
 ```
 
-Dragoman fetches by reference, uses the key for one HTTPS call, discards it. The key never enters Claude's context.
+Supported secret backends: **1Password CLI** (`op://`), **macOS Keychain** (`keychain://`), and **environment variables** (`env:`).
 
-## Multiple providers, multiple accounts
+## This isn't a hack — it's how sub-agents are supposed to work
 
-Dragoman replaces hardcoded singleton endpoints with a dynamic provider registry. You can connect as many distinct accounts, gateways, or local instances as you want simultaneously. 
+Anthropic built a genuinely good sub-agent architecture into Claude Code. Sub-agents get their own context, their own persona, and their own mission — completely separated from the parent. Dragoman is just one example of what that architecture makes possible with very little code.
 
-For example, if you run Ollama on a laptop and on a separate workstation reachable via Tailscale:
+You don't need a plugin system that doesn't exist yet. You don't need to reverse-engineer anything. And when Anthropic improves their sub-agent runtime — better fan-out, richer permissions, longer context — Dragoman gets better for free.
 
-```toml
-[providers.laptop_1]
-type = "openai_compat"
-host = "http://localhost:11434/v1"
+## What it writes
 
-[providers.workstation_1]
-type = "openai_compat"
-host = "http://workstation.tailnet.ts.net:11434/v1"
-```
-
-Then you simply tell Claude exactly which pipe to use: `--model workstation_1:qwen2.5:72b`. No magic network probing; just explicit, unopinionated routing.
-
-## What it writes to your system
-
-| Artifact | Path | Created by | Removed by |
+| What | Where | Created by | Removed by |
 | --- | --- | --- | --- |
 | Provider config | `~/.config/dragoman/config.toml` | `dragoman init` | `dragoman uninstall --purge-config` |
-| Persona block | `~/.claude/CLAUDE.md` (or project) | `dragoman init` | `dragoman uninstall` |
-| Python package | active env | `pip install dragoman-ai` | `pip uninstall dragoman-ai` |
+| Sub-agent files | `~/.claude/agents/dragoman/` | `dragoman init` | `dragoman uninstall` |
+| Persona import | `~/.claude/CLAUDE.md` | `dragoman init` | `dragoman uninstall` |
 
-The persona block is bracketed by `<!-- dragoman persona ... -->` markers; removal is exact and idempotent.
+Clean removal: `dragoman uninstall` reverses everything. Add `--purge-config` to also delete your provider config.
+
+## Platform support
+
+| | Status |
+| --- | --- |
+| **macOS** | ✅ Fully supported |
+| **Linux** | ✅ Works — `keychain://` is macOS-only, but `op://` and `env:` work everywhere |
+| **Windows** | ❓ Untested — PRs welcome |
 
 ## Telemetry
 
-None. Dragoman makes no outbound calls of its own — only to provider endpoints you configured.
+None. Dragoman makes no outbound calls of its own — only to the provider endpoints you configured.
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Small PRs welcome; commits need DCO sign-off (`git commit -s`); [Contributor Covenant](./CODE_OF_CONDUCT.md) applies.
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Small PRs welcome; commits need DCO sign-off (`git commit -s`). [Contributor Covenant](./CODE_OF_CONDUCT.md) applies.
 
 ## License
 
-Apache 2.0. See [`LICENSE`](./LICENSE).
+Apache 2.0 — see [LICENSE](./LICENSE).
 
 ---
 
