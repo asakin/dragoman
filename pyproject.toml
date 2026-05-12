@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragoman-ai"
-version = "0.5.0"
+version = "0.6.0"
 description = "A small CLI that lets Claude Code reach non-Anthropic models — Ollama, Perplexity, OpenAI, Gemini — through a subagent that knows how to call it."
 readme = "README.md"
 requires-python = ">=3.11"

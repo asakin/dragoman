@@ -4,7 +4,7 @@ A small CLI that lets [Claude Code](https://docs.claude.com/en/docs/claude-code)
 
 I have a GPU running Ollama. I pay for OpenAI, Gemini, and Perplexity because each is the right answer for a different shape of question. Claude Code is the conductor. Dragoman is the verb that lets the conductor talk to the rest of the orchestra.
 
-**v0.5.0 alpha. Apache 2.0.**
+**v0.6.0 alpha. Apache 2.0.**
 
 ## What it does
 
