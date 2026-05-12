@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../oss-companions/dragoman-companion"
+		},
+		{
+			"path": "../homebrew-tap"
+		}
+	],
+	"settings": {}
+}
