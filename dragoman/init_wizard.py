@@ -79,7 +79,7 @@ _PROVIDERS = [
     {"name": "Google Gemini",                "type": "gemini",        "host": None,                         "needs_host": False, "needs_key": True},
     {"name": "Perplexity",                   "type": "openai_compat", "host": "https://api.perplexity.ai",  "needs_host": False, "needs_key": True,
      "fallback_models": ["sonar", "sonar-pro", "sonar-reasoning-pro", "sonar-deep-research"]},
-    {"name": "Ollama local [localhost:11434]","type": "openai_compat", "host": "http://localhost:11434/v1",  "needs_host": False, "needs_key": False},
+    {"name": "Ollama",                      "type": "openai_compat", "host": "http://localhost:11434/v1",  "needs_host": True,  "needs_key": False},
 ]
 
 
@@ -92,7 +92,8 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict] | None:
     if prov["needs_host"]:
         raw = questionary.text(
             "Endpoint URL (include version path if the vendor uses one, "
-            "e.g. https://api.openai.com/v1 — Dragoman appends /chat/completions):"
+            "e.g. https://api.openai.com/v1 — Dragoman appends /chat/completions):",
+            default=prov.get("host") or "",
         ).ask()
         if not raw:
             return None

@@ -39,7 +39,13 @@ dragoman --help
 dragoman ask --model laptop_1:qwen2.5:32b --prompt "say hello"
 ```
 
-There's no formal test harness yet. If your PR makes `secrets.resolve`, `routing.resolve`, or `config.normalize_host` reasonable to test, please add the tests; that's a clear step forward.
+There's a small test suite under `tests/`. Run it with:
+
+```bash
+pytest
+```
+
+If your PR touches `secrets.resolve`, `routing.resolve`, `config.normalize_host`, or agent file installation, please add or update tests.
 
 ## What we want / don't want
 

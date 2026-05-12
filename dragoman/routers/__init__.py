@@ -1,4 +1,4 @@
 """Foreign-model routers. Each module exposes an `ask()` function.
 
-Single-shot only — no agent loop, no streaming, no tool use. Text in, text out.
+Text in, text out. Optional streaming via --stream. No agent loop, no tool use.
 """

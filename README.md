@@ -23,6 +23,12 @@ Instead of *"I don't have web access,"* Claude recognizes this is a search quest
 - 🔀 **Fan out** — Send the same question to four models and have Claude synthesize the best answer
 - 🎯 **Upgrade selectively** — Coding in Sonnet, but need Opus + GPT-5 for a deep research question? Just ask
 
+**Example — multi-model editing pipeline in one prompt:**
+
+> "Take my draft. Send it to Opus for a deep prose edit. Then send the result to o3 for structural consistency. Then send that to Perplexity for citations and prior art. Apply fixes after each step."
+
+Claude chains three sub-agents in sequence — each calls the right model via Dragoman, applies the feedback, and passes the improved draft to the next. One prompt, three models, fully automated.
+
 ## Install
 
 ```bash
