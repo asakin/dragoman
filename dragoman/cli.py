@@ -198,40 +198,44 @@ def cmd_status() -> int:
 # ---------- entry point ----------
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        prog="dragoman",
-        description="A small CLI that lets Claude Code reach non-Anthropic models.",
-    )
-    parser.add_argument("--version", action="version", version=f"dragoman {__version__}")
+    try:
+        parser = argparse.ArgumentParser(
+            prog="dragoman",
+            description="A small CLI that lets Claude Code reach non-Anthropic models.",
+        )
+        parser.add_argument("--version", action="version", version=f"dragoman {__version__}")
 
-    sub = parser.add_subparsers(dest="command", title="commands")
+        sub = parser.add_subparsers(dest="command", title="commands")
 
-    p_ask = sub.add_parser("ask", help="Forward a prompt to a foreign model. Print response.")
-    p_ask.add_argument("--model", required=True, help="Model spec: connection:name (e.g. openai:gpt-4o).")
-    p_ask.add_argument("--prompt", help="The prompt. Required unless --messages is provided.")
-    p_ask.add_argument("--messages", help="Path to a JSON file containing a conversation history array.")
-    p_ask.add_argument("--system", help="Optional system prompt.")
-    p_ask.add_argument("--stream", action="store_true", help="Stream response to stderr in real time.")
-    p_ask.add_argument("--quiet", action="store_true", help="Suppress the 🐉 cost line on stderr.")
+        p_ask = sub.add_parser("ask", help="Forward a prompt to a foreign model. Print response.")
+        p_ask.add_argument("--model", required=True, help="Model spec: connection:name (e.g. openai:gpt-4o).")
+        p_ask.add_argument("--prompt", help="The prompt. Required unless --messages is provided.")
+        p_ask.add_argument("--messages", help="Path to a JSON file containing a conversation history array.")
+        p_ask.add_argument("--system", help="Optional system prompt.")
+        p_ask.add_argument("--stream", action="store_true", help="Stream response to stderr in real time.")
+        p_ask.add_argument("--quiet", action="store_true", help="Suppress the 🐉 cost line on stderr.")
 
-    sub.add_parser("models", help="List configured models, one per line.")
-    sub.add_parser("init", help="Interactive setup; writes provider config + agent file.")
+        sub.add_parser("models", help="List configured models, one per line.")
+        sub.add_parser("init", help="Interactive setup; writes provider config + agent file.")
 
-    p_uninst = sub.add_parser("uninstall", help="Remove the agent file (and optionally the config file).")
-    p_uninst.add_argument("--purge-config", action="store_true", help="Also delete the config file.")
+        p_uninst = sub.add_parser("uninstall", help="Remove the agent file (and optionally the config file).")
+        p_uninst.add_argument("--purge-config", action="store_true", help="Also delete the config file.")
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
-    if args.command == "ask":
-        return cmd_ask(args)
-    if args.command == "models":
-        return cmd_models(args)
-    if args.command == "init":
-        from dragoman.init_wizard import cmd_init
-        return cmd_init()
-    if args.command == "uninstall":
-        return cmd_uninstall(args)
-    return cmd_status()
+        if args.command == "ask":
+            return cmd_ask(args)
+        if args.command == "models":
+            return cmd_models(args)
+        if args.command == "init":
+            from dragoman.init_wizard import cmd_init
+            return cmd_init()
+        if args.command == "uninstall":
+            return cmd_uninstall(args)
+        return cmd_status()
+    except KeyboardInterrupt:
+        print("\nCancelled.", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":

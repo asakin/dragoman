@@ -150,23 +150,17 @@ def _setup_provider(prov: dict, existing_names: set) -> tuple[str, dict] | None:
 
 def _select_models(conn_name: str, raw_models: list[str]) -> list[dict]:
     """Approve all discovered models automatically without prompting."""
-    cat_approved, cat_rejected, unknowns = discovery.map_discovered_models(conn_name, raw_models)
-
-    if not cat_approved and not cat_rejected and not unknowns:
+    if not raw_models:
         print(f"  No models discovered from {conn_name}.")
         return []
 
     selected = []
-    selected.extend(cat_approved)
-    selected.extend(cat_rejected)
-    for uid in unknowns:
+    for uid in raw_models:
+        # If the API returns models prefixed with 'models/', strip it for clarity
+        clean_id = uid.replace("models/", "") if uid.startswith("models/") else uid
         selected.append({
-            "model_id": uid,
+            "model_id": clean_id,
             "provider": conn_name,
-            "strengths": "Unknown model",
-            "suitable_for": "general",
-            "context": "?",
-            "propose": "yes",
         })
 
     print(f"  Discovered {len(selected)} models.")

@@ -4,7 +4,7 @@ A small CLI that lets [Claude Code](https://docs.claude.com/en/docs/claude-code)
 
 I have a GPU running Ollama. I pay for OpenAI, Gemini, and Perplexity because each is the right answer for a different shape of question. Claude Code is the conductor. Dragoman is the verb that lets the conductor talk to the rest of the orchestra.
 
-**v0.6.0 alpha. Apache 2.0.**
+**v0.6.1 alpha. Apache 2.0.**
 
 ## What it does
 
@@ -22,14 +22,15 @@ The persona injected by `dragoman init` teaches Claude Code when to spawn a real
 You can install Dragoman securely using any modern Python tool manager:
 
 ```bash
-# Using pipx (Standard)
-pipx install dragoman-ai
+# Using Homebrew (macOS/Linux)
+brew install asakin/tap/dragoman
 
 # Using uv (Fastest)
 uv tool install dragoman-ai
-```
 
-*(Homebrew support is currently being built!)*
+# Using pipx (Standard)
+pipx install dragoman-ai
+```
 
 Then, initialize your config and provider keys:
 ```bash

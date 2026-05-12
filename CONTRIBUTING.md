@@ -37,10 +37,9 @@ dragoman init       # configure providers + install agent file
 # Sanity checks
 dragoman --help
 dragoman ask --model laptop_1:qwen2.5:32b --prompt "say hello"
-dragoman recommend "summarize 200 transcripts privately"
 ```
 
-There's no formal test harness yet. If your PR makes `secrets.resolve`, `routing.resolve`, `recommend.recommend`, or `config.normalize_host` reasonable to test, please add the tests; that's a clear step forward.
+There's no formal test harness yet. If your PR makes `secrets.resolve`, `routing.resolve`, or `config.normalize_host` reasonable to test, please add the tests; that's a clear step forward.
 
 ## What we want / don't want
 

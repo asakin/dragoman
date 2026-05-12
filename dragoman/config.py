@@ -23,8 +23,11 @@ def load_config() -> dict:
     """Load config from disk; return {} if no config file exists."""
     if not CONFIG_FILE.exists():
         return {}
-    with open(CONFIG_FILE, "rb") as f:
-        return tomllib.load(f)
+    try:
+        with open(CONFIG_FILE, "rb") as f:
+            return tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise RuntimeError(f"Failed to parse config at {CONFIG_FILE}: {e}")
 
 
 def save_config(config: dict) -> None:
